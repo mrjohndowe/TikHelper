@@ -1,0 +1,529 @@
+{
+  "initialActions": [
+    {
+      "job": "Main",
+      "type": "updateJob",
+      "action": "start"
+    },
+    {
+      "job": "Sampler",
+      "type": "updateJob",
+      "action": "start"
+    },
+    {
+      "type": "updateVariable",
+      "value": "not started",
+      "variable": "sampler-status"
+    },
+    {
+      "type": "updateVariable",
+      "value": "60",
+      "variable": "sampled-duration-seconds"
+    },
+    {
+      "type": "updateVariable",
+      "value": "60",
+      "variable": "sampled-remaining-seconds"
+    },
+    {
+      "type": "updateVariable",
+      "value": "0",
+      "variable": "dynamic-max-output"
+    },
+    {
+      "type": "updateVariable",
+      "value": "waiting",
+      "variable": "monitor-readable"
+    },
+    {
+      "type": "updateVariable",
+      "value": "waiting-body-rf",
+      "variable": "web-monitor-status"
+    },
+    {
+      "type": "updateVariable",
+      "value": "0",
+      "variable": "timer-remaining-seconds"
+    },
+    {
+      "type": "updateVariable",
+      "value": "60",
+      "variable": "timer-duration-seconds"
+    },
+    {
+      "type": "updateVariable",
+      "value": "0",
+      "variable": "countdown-active"
+    },
+    {
+      "type": "updateVariable",
+      "value": "none",
+      "variable": "countdown-type"
+    },
+    {
+      "type": "updateVariable",
+      "value": "0",
+      "variable": "countdown-remaining-seconds"
+    },
+    {
+      "type": "updateVariable",
+      "value": "RF waiting...",
+      "variable": "monitor-raw"
+    },
+    {
+      "text": "Started. Waiting for RF body monitor. Max = elapsed percent.",
+      "type": "updateScript",
+      "action": "setText"
+    },
+    {
+      "type": "updateComponent",
+      "action": "setVolume",
+      "channel": "generic-1-a",
+      "rampTime": 0,
+      "percentVolume": "0"
+    }
+  ],
+  "finalActions": [],
+  "globalTriggers": [
+    {
+      "url": "xxxtik.com",
+      "type": "componentState",
+      "regex": "[\\s\\S]*RF\\|r=([0-9]+)\\|d=([0-9]+)\\|c=([01])\\|t=([a-zA-Z]+)\\|cr=([0-9]+)\\|ts=([0-9]+)[\\s\\S]*",
+      "jquery": "body",
+      "actions": [
+        {
+          "type": "updateVariable",
+          "value": "{trigger-1}",
+          "variable": "timer-remaining-seconds"
+        },
+        {
+          "type": "updateVariable",
+          "value": "{trigger-2}",
+          "variable": "timer-duration-seconds"
+        },
+        {
+          "type": "updateVariable",
+          "value": "{trigger-3}",
+          "variable": "countdown-active"
+        },
+        {
+          "type": "updateVariable",
+          "value": "{trigger-4}",
+          "variable": "countdown-type"
+        },
+        {
+          "type": "updateVariable",
+          "value": "{trigger-5}",
+          "variable": "countdown-remaining-seconds"
+        },
+        {
+          "type": "updateVariable",
+          "value": "RF live parsed OK",
+          "variable": "web-monitor-status"
+        },
+        {
+          "type": "updateVariable",
+          "value": "{trigger}",
+          "variable": "monitor-raw"
+        },
+        {
+          "type": "updateVariable",
+          "value": "live r={trigger-1}s | d={trigger-2}s | c={trigger-3} {trigger-4}",
+          "variable": "monitor-readable"
+        },
+        {
+          "text": "RF live OK | live r={trigger-1}s d={trigger-2}s c={trigger-3}; sampler every {sample-interval}s",
+          "type": "updateScript",
+          "action": "setText"
+        }
+      ],
+      "changed": false,
+      "channel": "webpage-a",
+      "eventType": "changed",
+      "parsedRegex": "[\\s\\S]*RF\\|r=([0-9]+)\\|d=([0-9]+)\\|c=([01])\\|t=([a-zA-Z]+)\\|cr=([0-9]+)\\|ts=([0-9]+)[\\s\\S]*",
+      "parsedJQuery": "body"
+    },
+    {
+      "type": "variableChange",
+      "actions": [
+        {
+          "job": "Main",
+          "step": "START",
+          "type": "updateJob",
+          "action": "goTo"
+        }
+      ],
+      "variable": "start-ramp"
+    },
+    {
+      "type": "variableChange",
+      "actions": [
+        {
+          "job": "Main",
+          "step": "CLIMAX_ON",
+          "type": "updateJob",
+          "action": "goTo"
+        }
+      ],
+      "variable": "climax"
+    }
+  ],
+  "jobs": {
+    "Main": {
+      "steps": {
+        "RAMP": {
+          "actions": [
+            {
+              "type": "updateComponent",
+              "action": "setVolume",
+              "channel": "generic-1-a",
+              "rampTime": "{ramp-seconds}",
+              "percentVolume": "min(100,(({countdown-active}*100)+{target-output}+((({sampled-duration-seconds}\\-{sampled-remaining-seconds})/{sampled-duration-seconds})*100)))",
+              "parsedRampTime": 10
+            }
+          ],
+          "triggers": [
+            {
+              "type": "stepState",
+              "event": "timer",
+              "amount": "{ramp-seconds}",
+              "actions": [
+                {
+                  "job": "Main",
+                  "step": "FLUCTUATE",
+                  "type": "updateJob",
+                  "action": "goTo"
+                }
+              ]
+            }
+          ]
+        },
+        "START": {
+          "actions": [
+            {
+              "type": "updateComponent",
+              "action": "setVolume",
+              "channel": "generic-1-a",
+              "rampTime": 0,
+              "percentVolume": "0"
+            }
+          ],
+          "triggers": [
+            {
+              "type": "stepState",
+              "event": "timer",
+              "amount": "{cooldown-seconds}",
+              "actions": [
+                {
+                  "job": "Main",
+                  "step": "RAMP",
+                  "type": "updateJob",
+                  "action": "goTo"
+                }
+              ]
+            }
+          ]
+        },
+        "CLIMAX_ON": {
+          "actions": [
+            {
+              "type": "updateComponent",
+              "action": "setVolume",
+              "channel": "generic-1-a",
+              "rampTime": 0,
+              "percentVolume": "100"
+            }
+          ],
+          "triggers": []
+        },
+        "FLUCTUATE": {
+          "actions": [
+            {
+              "type": "updateComponent",
+              "action": "setVolume",
+              "channel": "generic-1-a",
+              "rampTime": "{jump-interval} * 0.9",
+              "percentVolume": "max(0,min(100,(({countdown-active}*100)+{target-output}+((({sampled-duration-seconds}\\-{sampled-remaining-seconds})/{sampled-duration-seconds})*100)+random(-{jump-range},{jump-range}))))",
+              "parsedRampTime": 1.35
+            }
+          ],
+          "triggers": [
+            {
+              "type": "stepState",
+              "event": "timer",
+              "amount": "{jump-interval}",
+              "actions": [
+                {
+                  "job": "Main",
+                  "step": "FLUCTUATE",
+                  "type": "updateJob",
+                  "action": "goTo"
+                }
+              ],
+              "parsedAmount": 1.5
+            }
+          ]
+        }
+      }
+    },
+    "Sampler": {
+      "steps": {
+        "START": {
+          "actions": [
+            {
+              "type": "updateVariable",
+              "value": "{timer-remaining-seconds}",
+              "variable": "sampled-remaining-seconds"
+            },
+            {
+              "type": "updateVariable",
+              "value": "{timer-duration-seconds}",
+              "variable": "sampled-duration-seconds"
+            },
+            {
+              "type": "updateVariable",
+              "value": "Sampler started",
+              "variable": "sampler-status"
+            },
+            {
+              "job": "Sampler",
+              "step": "SAMPLE",
+              "type": "updateJob",
+              "action": "goTo"
+            }
+          ],
+          "triggers": []
+        },
+        "SAMPLE": {
+          "actions": [
+            {
+              "type": "updateVariable",
+              "value": "{timer-remaining-seconds}",
+              "variable": "sampled-remaining-seconds"
+            },
+            {
+              "type": "updateVariable",
+              "value": "{timer-duration-seconds}",
+              "variable": "sampled-duration-seconds"
+            },
+            {
+              "type": "updateVariable",
+              "value": "min(100,(({countdown-active}*100)+{target-output}+((({sampled-duration-seconds}\\-{sampled-remaining-seconds})/{sampled-duration-seconds})*100)))",
+              "variable": "dynamic-max-output"
+            },
+            {
+              "type": "updateVariable",
+              "value": "Sampler tick",
+              "variable": "sampler-status"
+            },
+            {
+              "type": "updateVariable",
+              "value": "base={target-output}% | sampled r={timer-remaining-seconds}s | d={timer-duration-seconds}s | expected=base+elapsed%",
+              "variable": "monitor-readable"
+            },
+            {
+              "type": "updateComponent",
+              "action": "setVolume",
+              "channel": "generic-1-a",
+              "rampTime": "{jump-interval} * 0.9",
+              "percentVolume": "max(0,min(100,(({countdown-active}*100)+{target-output}+((({sampled-duration-seconds}\\-{sampled-remaining-seconds})/{sampled-duration-seconds})*100)+random(-{jump-range},{jump-range}))))",
+              "parsedRampTime": 1.35
+            },
+            {
+              "text": "RF sampled | live r={timer-remaining-seconds}s d={timer-duration-seconds}s | sampled r={sampled-remaining-seconds}s d={sampled-duration-seconds}s | base={target-output}% | c={countdown-active}",
+              "type": "updateScript",
+              "action": "setText"
+            }
+          ],
+          "triggers": [
+            {
+              "type": "stepState",
+              "event": "timer",
+              "amount": "{sample-interval}",
+              "actions": [
+                {
+                  "job": "Sampler",
+                  "step": "SAMPLE",
+                  "type": "updateJob",
+                  "action": "goTo"
+                }
+              ],
+              "parsedAmount": 2
+            }
+          ]
+        }
+      }
+    }
+  },
+  "queues": [],
+  "channels": {
+    "webpage-a": {
+      "name": "",
+      "type": "webpage",
+      "webpages": [
+        "xxxtik.com"
+      ]
+    },
+    "generic-1-a": {
+      "name": null,
+      "type": "generic-1"
+    }
+  },
+  "controls": [
+    {
+      "id": "start-ramp",
+      "up": "0",
+      "down": "1",
+      "name": "Edge",
+      "type": "push"
+    },
+    {
+      "id": "climax",
+      "up": "0",
+      "down": "1",
+      "name": "Climax",
+      "type": "push"
+    },
+    {
+      "id": "cooldown-seconds",
+      "name": "Cooldown before ramp (s)",
+      "type": "input",
+      "value": "10"
+    },
+    {
+      "id": "ramp-seconds",
+      "name": "Ramp length (s)",
+      "type": "input",
+      "value": "10",
+      "description": ""
+    },
+    {
+      "id": "target-output",
+      "max": 100,
+      "min": 0,
+      "name": "Base Output Slider (%)",
+      "type": "slider",
+      "value": 10,
+      "description": "Basevalie, that is added to Timerprogress. Example: 10 + 50 = 60."
+    },
+    {
+      "id": "sample-interval",
+      "name": "Timer sample every (s)",
+      "type": "input",
+      "value": "2",
+      "description": "Only sample Timervalue every X Seconds."
+    },
+    {
+      "id": "formula-info-2",
+      "name": "Formula",
+      "type": "input",
+      "value": "min(100, c*100 + base + ((duration-remaining)/duration)*100)",
+      "description": "Example: base 10, r 30, d 60 => 60%. Countdown c=1 => 100%."
+    },
+    {
+      "id": "jump-range",
+      "max": 20,
+      "min": 0,
+      "name": "Jump Range (%)",
+      "type": "slider",
+      "value": 10,
+      "description": ""
+    },
+    {
+      "id": "jump-interval",
+      "name": "Jump every (s)",
+      "type": "input",
+      "value": "1.5"
+    },
+    {
+      "id": "timer-remaining-seconds",
+      "name": "MONITOR Remaining Seconds",
+      "type": "input",
+      "value": "0"
+    },
+    {
+      "id": "timer-duration-seconds",
+      "name": "MONITOR Session Duration Seconds",
+      "type": "input",
+      "value": "1"
+    },
+    {
+      "id": "countdown-active",
+      "name": "MONITOR Countdown Active 0/1",
+      "type": "input",
+      "value": "0"
+    },
+    {
+      "id": "countdown-type",
+      "name": "MONITOR Countdown Type",
+      "type": "input",
+      "value": "none"
+    },
+    {
+      "id": "countdown-remaining-seconds",
+      "name": "MONITOR Countdown Remaining Seconds",
+      "type": "input",
+      "value": "0"
+    },
+    {
+      "id": "web-monitor-status",
+      "name": "MONITOR Status",
+      "type": "input",
+      "value": "waiting",
+      "description": "Shows if the Webpage Monitor got parsed."
+    },
+    {
+      "id": "monitor-raw",
+      "name": "MONITOR Raw Body Match",
+      "type": "input",
+      "value": "RF waiting...",
+      "description": "Raw Data from the Webpage Monitor Trigger."
+    },
+    {
+      "id": "monitor-readable",
+      "name": "MONITOR Readable Parsed Values",
+      "type": "input",
+      "value": "waiting",
+      "description": ""
+    },
+    {
+      "id": "dynamic-max-output",
+      "name": "DEBUG Formula Output",
+      "type": "input",
+      "value": "0",
+      "description": ""
+    },
+    {
+      "id": "sampled-remaining-seconds",
+      "name": "SAMPLED Remaining Seconds",
+      "type": "input",
+      "value": "60"
+    },
+    {
+      "id": "sampled-duration-seconds",
+      "name": "SAMPLED Duration Seconds",
+      "type": "input",
+      "value": "60"
+    },
+    {
+      "id": "formula-example",
+      "name": "Formula Example",
+      "type": "input",
+      "value": "Base 10 + ((60-30)/60)*100 = 60",
+      "description": ""
+    },
+    {
+      "id": "sampler-status",
+      "name": "SAMPLER Status",
+      "type": "input",
+      "value": "not started"
+    }
+  ],
+  "controlPresets": [],
+  "media": {
+    "audio": {},
+    "voices": {},
+    "patterns": {}
+  },
+  "customFunctions": ""
+}
