@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         xfree Session Helper
-// @version      0.3.1
+// @version      0.4.0
 // @description  Sessionhelper for xfree with xtoys integration
 // @match        https://xfree.com/*
 // @match        https://*.xfree.com/*
@@ -803,7 +803,7 @@
     toast.innerHTML = `
       <span>${hideTimer ? 'Session active' : `Session active · <strong id="rf-remaining">${formatTime(getRemainingMs())}</strong>`}</span>
       <button id="rf-toggle-scroll" type="button">Scroll On</button>
-      <button id="rf-pause-scroll" type="button">Pause 60s</button>
+      <button id="rf-pause-scroll" type="button">Pause 10s</button>
       <button id="rf-stop-session" type="button" style="background:#7a1f23;">STOP</button>
     `;
 
@@ -814,7 +814,7 @@
     });
 
     document.getElementById('rf-pause-scroll')?.addEventListener('click', () => {
-      localStorage.setItem('redfabber_scroll_pause_until', String(Date.now() + 60000));
+      localStorage.setItem('redfabber_scroll_pause_until', String(Date.now() + 10000));
       const button = document.getElementById('rf-pause-scroll');
       if (button) button.textContent = 'Paused';
     });
@@ -1582,12 +1582,130 @@
     });
   }
 
+  function getVideoMediaKey(video) {
+    if (!video) return '';
+
+    const source = (
+      video.currentSrc ||
+      video.getAttribute('src') ||
+      video.querySelector?.('source[src]')?.getAttribute('src') ||
+      ''
+    );
+
+    const poster = video.getAttribute?.('poster') || '';
+
+    return `${source}|${poster}`;
+  }
+
+  function getVisibleVideo() {
+    let bestVideo = null;
+    let bestScore = -Infinity;
+
+    for (const doc of getAccessibleDocuments()) {
+      const view = doc.defaultView || window;
+      const viewportWidth = view.innerWidth || doc.documentElement?.clientWidth || 0;
+      const viewportHeight = view.innerHeight || doc.documentElement?.clientHeight || 0;
+
+      for (const video of queryAllDeep(doc, 'video')) {
+        try {
+          const rect = video.getBoundingClientRect();
+          const style = view.getComputedStyle(video);
+
+          if (
+            rect.width <= 1 ||
+            rect.height <= 1 ||
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            Number(style.opacity) === 0
+          ) {
+            continue;
+          }
+
+          const visibleWidth = Math.max(
+            0,
+            Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0)
+          );
+
+          const visibleHeight = Math.max(
+            0,
+            Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)
+          );
+
+          const visibleArea = visibleWidth * visibleHeight;
+
+          if (visibleArea <= 0) {
+            continue;
+          }
+
+          const elementArea = Math.max(1, rect.width * rect.height);
+          const visibleRatio = visibleArea / elementArea;
+          const duration = Number(video.duration);
+
+          let score = visibleArea * Math.max(0.25, visibleRatio);
+
+          // Prefer the video xfree is actually playing.
+          if (!video.paused && !video.ended) score += 1_000_000;
+          if (Number.isFinite(duration) && duration > 0) score += 100_000;
+          if (visibleRatio >= 0.5) score += 50_000;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestVideo = video;
+          }
+        } catch (error) {
+          // Ignore videos that cannot be inspected.
+        }
+      }
+    }
+
+    return bestVideo;
+  }
+
+  function getVideoTiming(video) {
+    if (!video) return null;
+
+    const duration = Number(video.duration);
+    const currentTime = Math.max(0, Number(video.currentTime) || 0);
+    const playbackRate = Math.abs(Number(video.playbackRate)) || 1;
+
+    if (!Number.isFinite(duration) || duration <= 0) {
+      return null;
+    }
+
+    const remainingMediaSeconds = Math.max(0, duration - currentTime);
+    const remainingWallSeconds = remainingMediaSeconds / playbackRate;
+
+    return {
+      duration,
+      currentTime,
+      playbackRate,
+      remainingMediaSeconds,
+      remainingWallSeconds,
+      mediaKey: getVideoMediaKey(video)
+    };
+  }
+
   function startSessionWatcher() {
     const runtimeToken = sessionRuntimeToken;
     let lastScrollAt = Date.now();
 
+    // Video timing state. xfree may reuse the same <video> element between
+    // posts, so both the element and its media key are tracked.
+    let trackedVideo = null;
+    let trackedVideoKey = '';
+    let trackedVideoDuration = 0;
+    let videoScrollDeadline = 0;
+
+    function resetVideoTracking() {
+      trackedVideo = null;
+      trackedVideoKey = '';
+      trackedVideoDuration = 0;
+      videoScrollDeadline = 0;
+    }
+
     attachManualScrollReset(() => {
       lastScrollAt = Date.now();
+      resetVideoTracking();
     });
 
     const interval = window.setInterval(() => {
@@ -1608,12 +1726,21 @@
         remaining.textContent = formatTime(getRemainingMs());
       }
 
-      const mediaDurationSeconds = Number(localStorage.getItem('redfabber_scroll_seconds')) || DEFAULTS.scrollSeconds;
-      const remainingMs = getRemainingMs();
-      const countdownDurationSeconds = Number(localStorage.getItem(STORAGE_KEYS.countdownDurationSeconds)) || 0;
-      const countdownPlayed = localStorage.getItem(STORAGE_KEYS.countdownPlayed) === 'true';
+      const fallbackScrollSeconds =
+        Number(localStorage.getItem('redfabber_scroll_seconds')) ||
+        DEFAULTS.scrollSeconds;
 
-      if (countdownDurationSeconds > 0 && !countdownPlayed && remainingMs <= countdownDurationSeconds * 1000) {
+      const remainingMs = getRemainingMs();
+      const countdownDurationSeconds =
+        Number(localStorage.getItem(STORAGE_KEYS.countdownDurationSeconds)) || 0;
+      const countdownPlayed =
+        localStorage.getItem(STORAGE_KEYS.countdownPlayed) === 'true';
+
+      if (
+        countdownDurationSeconds > 0 &&
+        !countdownPlayed &&
+        remainingMs <= countdownDurationSeconds * 1000
+      ) {
         debug('Countdown trigger reached:', {
           remainingMs,
           remainingSeconds: Math.ceil(remainingMs / 1000),
@@ -1627,19 +1754,72 @@
       const pauseButton = document.getElementById('rf-pause-scroll');
 
       if (pauseButton && isScrollPaused()) {
-        const secondsLeft = Math.ceil((getPauseUntil() - Date.now()) / 6000);
+        const secondsLeft = Math.ceil((getPauseUntil() - Date.now()) / 1000);
         pauseButton.textContent = `${secondsLeft}s`;
       } else if (pauseButton) {
-        pauseButton.textContent = 'Pause 60s';
+        pauseButton.textContent = 'Pause 10s';
       }
 
-      const autoScrollEnabled = localStorage.getItem(STORAGE_KEYS.autoScrollEnabled) !== 'false';
+      const autoScrollEnabled =
+        localStorage.getItem(STORAGE_KEYS.autoScrollEnabled) !== 'false';
 
-      if (autoScrollEnabled && !isScrollPaused() && Date.now() - lastScrollAt >= mediaDurationSeconds * 1000) {
+      if (!autoScrollEnabled || isScrollPaused()) {
+        return;
+      }
+
+      const activeVideo = getVisibleVideo();
+      const timing = getVideoTiming(activeVideo);
+
+      if (activeVideo && timing) {
+        const mediaChanged =
+          activeVideo !== trackedVideo ||
+          timing.mediaKey !== trackedVideoKey ||
+          Math.abs(timing.duration - trackedVideoDuration) > 0.25;
+
+        if (mediaChanged || videoScrollDeadline <= 0) {
+          trackedVideo = activeVideo;
+          trackedVideoKey = timing.mediaKey;
+          trackedVideoDuration = timing.duration;
+
+          // Start from the video's CURRENT playback position. If the user
+          // arrives halfway through a 30-second video, auto-scroll waits only
+          // for the remaining 15 seconds.
+          videoScrollDeadline =
+            Date.now() + Math.max(250, timing.remainingWallSeconds * 1000);
+
+          debug('Video auto-scroll scheduled:', {
+            duration: timing.duration,
+            currentTime: timing.currentTime,
+            playbackRate: timing.playbackRate,
+            remainingSeconds: timing.remainingWallSeconds,
+            deadline: new Date(videoScrollDeadline).toISOString(),
+            source: timing.mediaKey
+          });
+        }
+
+        // Use our deadline rather than video.ended so this still works when
+        // xfree loops the video and currentTime jumps back to 0 at the end.
+        if (Date.now() >= videoScrollDeadline) {
+          debug('Video duration completed. Advancing xfree feed.');
+
+          triggerScrollStep();
+          lastScrollAt = Date.now();
+          resetVideoTracking();
+        }
+
+        return;
+      }
+
+      // No video (for example an image post), or metadata is not available.
+      // Keep the original configurable interval as a fallback.
+      resetVideoTracking();
+
+      if (Date.now() - lastScrollAt >= fallbackScrollSeconds * 1000) {
+        debug('No timed video detected. Using fallback scroll interval:', fallbackScrollSeconds);
         triggerScrollStep();
         lastScrollAt = Date.now();
       }
-    }, 1000);
+    }, 250);
   }
 
   function getXfreeDiagnostics() {
@@ -1654,6 +1834,8 @@
       nextControl: findSemanticControl(document, 'next'),
       closeControl: findSemanticControl(document, 'close'),
       scrollableElement: findBestScrollableElement(document),
+      activeVideo: getVisibleVideo(),
+      activeVideoTiming: getVideoTiming(getVisibleVideo()),
       monitorState: getXtoysMonitorState()
     };
   }
