@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         xfree Session Helper
-// @version      0.4.0
+// @version      0.5.0
 // @description  Sessionhelper for xfree with xtoys integration
 // @match        https://xfree.com/*
 // @match        https://*.xfree.com/*
@@ -1582,6 +1582,95 @@
     });
   }
 
+
+  function parseTimeLeftText(text) {
+    if (typeof text !== 'string') return null;
+
+    const clean = text.trim();
+    if (!clean) return null;
+
+    const parts = clean.split(':').map(part => Number(part.trim()));
+
+    if (
+      parts.length < 2 ||
+      parts.length > 3 ||
+      parts.some(part => !Number.isFinite(part) || part < 0)
+    ) {
+      return null;
+    }
+
+    if (parts.length === 2) {
+      return Math.max(0, parts[0] * 60 + parts[1]);
+    }
+
+    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  }
+
+  function getVisibleTimeLeftElement() {
+    const selectors = [
+      '.video-control.video-control--timeleft .timeleft',
+      '.video-control--timeleft .timeleft',
+      '.timeleft'
+    ];
+
+    for (const doc of getAccessibleDocuments()) {
+      const view = doc.defaultView || window;
+      const viewportWidth = view.innerWidth || doc.documentElement?.clientWidth || 0;
+      const viewportHeight = view.innerHeight || doc.documentElement?.clientHeight || 0;
+
+      for (const selector of selectors) {
+        for (const element of queryAllDeep(doc, selector)) {
+          try {
+            const rect = element.getBoundingClientRect();
+            const style = view.getComputedStyle(element);
+
+            if (
+              rect.width <= 0 ||
+              rect.height <= 0 ||
+              style.display === 'none' ||
+              style.visibility === 'hidden' ||
+              Number(style.opacity) === 0
+            ) {
+              continue;
+            }
+
+            const visibleWidth = Math.max(
+              0,
+              Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0)
+            );
+
+            const visibleHeight = Math.max(
+              0,
+              Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)
+            );
+
+            if (visibleWidth <= 0 || visibleHeight <= 0) {
+              continue;
+            }
+
+            if (parseTimeLeftText(element.textContent || '') !== null) {
+              return element;
+            }
+          } catch (error) {}
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function getXfreeTimeLeftState() {
+    const element = getVisibleTimeLeftElement();
+    if (!element) return null;
+
+    const text = (element.textContent || '').trim();
+    const seconds = parseTimeLeftText(text);
+
+    if (seconds === null) return null;
+
+    return { element, text, seconds };
+  }
+
   function getVideoMediaKey(video) {
     if (!video) return '';
 
@@ -1689,12 +1778,14 @@
     const runtimeToken = sessionRuntimeToken;
     let lastScrollAt = Date.now();
 
-    // Video timing state. xfree may reuse the same <video> element between
-    // posts, so both the element and its media key are tracked.
     let trackedVideo = null;
     let trackedVideoKey = '';
     let trackedVideoDuration = 0;
     let videoScrollDeadline = 0;
+
+    let lastTimeLeftSeconds = null;
+    let lastTimeLeftText = '';
+    let zeroSeenAt = 0;
 
     function resetVideoTracking() {
       trackedVideo = null;
@@ -1703,9 +1794,16 @@
       videoScrollDeadline = 0;
     }
 
+    function resetTimeLeftTracking() {
+      lastTimeLeftSeconds = null;
+      lastTimeLeftText = '';
+      zeroSeenAt = 0;
+    }
+
     attachManualScrollReset(() => {
       lastScrollAt = Date.now();
       resetVideoTracking();
+      resetTimeLeftTracking();
     });
 
     const interval = window.setInterval(() => {
@@ -1713,6 +1811,7 @@
         window.clearInterval(interval);
         return;
       }
+
       if (!isSessionActive()) {
         window.clearInterval(interval);
         finishSession();
@@ -1741,13 +1840,6 @@
         !countdownPlayed &&
         remainingMs <= countdownDurationSeconds * 1000
       ) {
-        debug('Countdown trigger reached:', {
-          remainingMs,
-          remainingSeconds: Math.ceil(remainingMs / 1000),
-          countdownDurationSeconds,
-          countdownUrl: localStorage.getItem(STORAGE_KEYS.countdownUrl)
-        });
-
         playCountdownSound();
       }
 
@@ -1767,6 +1859,51 @@
         return;
       }
 
+      // Preferred xfree timing source:
+      // <div class="video-control video-control--timeleft">
+      //   <span class="timeleft">12:38</span>
+      // </div>
+      const timeLeftState = getXfreeTimeLeftState();
+
+      if (timeLeftState) {
+        resetVideoTracking();
+
+        if (
+          timeLeftState.seconds !== lastTimeLeftSeconds ||
+          timeLeftState.text !== lastTimeLeftText
+        ) {
+          debug('xfree time-left:', {
+            text: timeLeftState.text,
+            seconds: timeLeftState.seconds
+          });
+
+          lastTimeLeftSeconds = timeLeftState.seconds;
+          lastTimeLeftText = timeLeftState.text;
+        }
+
+        if (timeLeftState.seconds <= 0) {
+          if (!zeroSeenAt) {
+            zeroSeenAt = Date.now();
+          }
+
+          // Debounce 0:00 slightly so xfree changing media doesn't double-click.
+          if (Date.now() - zeroSeenAt >= 250) {
+            debug('xfree time-left reached 0:00. Advancing feed.');
+            triggerScrollStep();
+            lastScrollAt = Date.now();
+            resetTimeLeftTracking();
+          }
+        } else {
+          zeroSeenAt = 0;
+        }
+
+        return;
+      }
+
+      resetTimeLeftTracking();
+
+      // Fallback #1: use the real <video> timing if the xfree time-left
+      // control is unavailable or hidden.
       const activeVideo = getVisibleVideo();
       const timing = getVideoTiming(activeVideo);
 
@@ -1781,27 +1918,19 @@
           trackedVideoKey = timing.mediaKey;
           trackedVideoDuration = timing.duration;
 
-          // Start from the video's CURRENT playback position. If the user
-          // arrives halfway through a 30-second video, auto-scroll waits only
-          // for the remaining 15 seconds.
           videoScrollDeadline =
             Date.now() + Math.max(250, timing.remainingWallSeconds * 1000);
 
-          debug('Video auto-scroll scheduled:', {
+          debug('Video fallback auto-scroll scheduled:', {
             duration: timing.duration,
             currentTime: timing.currentTime,
             playbackRate: timing.playbackRate,
-            remainingSeconds: timing.remainingWallSeconds,
-            deadline: new Date(videoScrollDeadline).toISOString(),
-            source: timing.mediaKey
+            remainingSeconds: timing.remainingWallSeconds
           });
         }
 
-        // Use our deadline rather than video.ended so this still works when
-        // xfree loops the video and currentTime jumps back to 0 at the end.
         if (Date.now() >= videoScrollDeadline) {
-          debug('Video duration completed. Advancing xfree feed.');
-
+          debug('Video fallback duration completed. Advancing xfree feed.');
           triggerScrollStep();
           lastScrollAt = Date.now();
           resetVideoTracking();
@@ -1810,12 +1939,10 @@
         return;
       }
 
-      // No video (for example an image post), or metadata is not available.
-      // Keep the original configurable interval as a fallback.
+      // Fallback #2: image/non-video posts use the configured scroll interval.
       resetVideoTracking();
 
       if (Date.now() - lastScrollAt >= fallbackScrollSeconds * 1000) {
-        debug('No timed video detected. Using fallback scroll interval:', fallbackScrollSeconds);
         triggerScrollStep();
         lastScrollAt = Date.now();
       }
@@ -1834,6 +1961,7 @@
       nextControl: findSemanticControl(document, 'next'),
       closeControl: findSemanticControl(document, 'close'),
       scrollableElement: findBestScrollableElement(document),
+      timeLeft: getXfreeTimeLeftState(),
       activeVideo: getVisibleVideo(),
       activeVideoTiming: getVideoTiming(getVisibleVideo()),
       monitorState: getXtoysMonitorState()
