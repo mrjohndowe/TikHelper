@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         xfree Session Helper
-// @version      0.3.0
+// @version      0.3.1
 // @description  Sessionhelper for xfree with xtoys integration
 // @match        https://xfree.com/*
 // @match        https://*.xfree.com/*
