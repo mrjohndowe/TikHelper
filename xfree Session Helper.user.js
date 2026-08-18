@@ -58,35 +58,35 @@
 
   const COUNTDOWN_SOUNDS = [
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-10-1.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-10-1.mp3',
       durationSeconds: 11
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-10-2.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-10-2.mp3',
       durationSeconds: 11
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-10.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-10.mp3',
       durationSeconds: 11
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-11.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-11.mp3',
       durationSeconds: 12
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-14-2.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-14-2.mp3',
       durationSeconds: 15
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-14.mp3.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-14.mp3.mp3',
       durationSeconds: 15
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-8.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-8.mp3',
       durationSeconds: 9
     },
     {
-      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-9.mp3',
+      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-9.mp3',
       durationSeconds: 10
     }
   ];
