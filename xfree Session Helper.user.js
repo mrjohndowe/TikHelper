@@ -57,35 +57,35 @@
 
   const COUNTDOWN_SOUNDS = [
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-10-1.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-10-1.mp3',
       durationSeconds: 11
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-10-2.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-10-2.mp3',
       durationSeconds: 11
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-10.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-10.mp3',
       durationSeconds: 11
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-11.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-11.mp3',
       durationSeconds: 12
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-14-2.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-14-2.mp3',
       durationSeconds: 15
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-14.mp3.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-14.mp3.mp3',
       durationSeconds: 15
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-8.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-8.mp3',
       durationSeconds: 9
     },
     {
-      url: 'https://github.com/Mrjohndowe/TikHelper/raw/refs/heads/main/Countdown_f_f-9.mp3',
+      url: 'https://github.com/TikHelper/TikHelper/raw/refs/heads/main/Countdown_f_f-9.mp3',
       durationSeconds: 10
     },
   ];
@@ -803,7 +803,7 @@
     toast.innerHTML = `
       <span>${hideTimer ? 'Session active' : `Session active · <strong id="rf-remaining">${formatTime(getRemainingMs())}</strong>`}</span>
       <button id="rf-toggle-scroll" type="button">Scroll On</button>
-      <button id="rf-pause-scroll" type="button">Pause 10s</button>
+      <button id="rf-pause-scroll" type="button">Pause 60s</button>
       <button id="rf-stop-session" type="button" style="background:#7a1f23;">STOP</button>
     `;
 
@@ -814,7 +814,7 @@
     });
 
     document.getElementById('rf-pause-scroll')?.addEventListener('click', () => {
-      localStorage.setItem('redfabber_scroll_pause_until', String(Date.now() + 10000));
+      localStorage.setItem('redfabber_scroll_pause_until', String(Date.now() + 60000));
       const button = document.getElementById('rf-pause-scroll');
       if (button) button.textContent = 'Paused';
     });
@@ -1627,15 +1627,15 @@
       const pauseButton = document.getElementById('rf-pause-scroll');
 
       if (pauseButton && isScrollPaused()) {
-        const secondsLeft = Math.ceil((getPauseUntil() - Date.now()) / 1000);
+        const secondsLeft = Math.ceil((getPauseUntil() - Date.now()) / 6000);
         pauseButton.textContent = `${secondsLeft}s`;
       } else if (pauseButton) {
-        pauseButton.textContent = 'Pause 10s';
+        pauseButton.textContent = 'Pause 60s';
       }
 
       const autoScrollEnabled = localStorage.getItem(STORAGE_KEYS.autoScrollEnabled) !== 'false';
 
-      if (autoScrollEnabled && !isScrollPaused() && Date.now() - lastScrollAt >= mediaDurationSeconds * 1000) {
+      if (autoScrollEnabled && !isScrollPaused() && Date.now() - lastScrollAt >= mediaDurationSeconds * 6000) {
         triggerScrollStep();
         lastScrollAt = Date.now();
       }
