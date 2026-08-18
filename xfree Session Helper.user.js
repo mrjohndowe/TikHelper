@@ -1635,7 +1635,7 @@
 
       const autoScrollEnabled = localStorage.getItem(STORAGE_KEYS.autoScrollEnabled) !== 'false';
 
-      if (autoScrollEnabled && !isScrollPaused() && Date.now() - lastScrollAt >= mediaDurationSeconds * 6000) {
+      if (autoScrollEnabled && !isScrollPaused() && Date.now() - lastScrollAt >= mediaDurationSeconds * 1000) {
         triggerScrollStep();
         lastScrollAt = Date.now();
       }
