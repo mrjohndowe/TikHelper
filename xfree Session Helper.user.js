@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         xfree Session Helper
-// @version      0.5.0
+// @version      0.5.1
 // @description  Sessionhelper for xfree with xtoys integration
 // @match        https://xfree.com/*
 // @match        https://*.xfree.com/*
@@ -18,31 +18,31 @@
 
   function debug(...args) {
     if (DEBUG) {
-      console.log('[RedFabber]', ...args);
+      console.log('[Mr John Dowe]', ...args);
     }
   }
 
   const STORAGE_KEYS = {
-    active: 'redfabber_session_active',
-    startedAt: 'redfabber_session_started_at',
-    endsAt: 'redfabber_session_ends_at',
-    durationMinutes: 'redfabber_session_duration_minutes',
-    minMinutes: 'redfabber_session_min_minutes',
-    maxMinutes: 'redfabber_session_max_minutes',
-    countdownUrl: 'redfabber_countdown_url',
-    countdownDurationSeconds: 'redfabber_countdown_duration_seconds',
-    countdownPlayed: 'redfabber_countdown_played',
-    postRunSeconds: 'redfabber_post_run_seconds',
-    closeTabAfterSession: 'redfabber_close_tab_after_session',
-    endingHandled: 'redfabber_ending_handled',
-    fakeCountdowns: 'redfabber_fake_countdowns',
-    surpriseMode: 'redfabber_surprise_mode',
-    hideTimer: 'redfabber_hide_timer',
-    autoScrollEnabled: 'redfabber_auto_scroll_enabled',
-    spokenCountdownEnabled: 'redfabber_spoken_countdown_enabled',
-    countdownActive: 'redfabber_countdown_active',
-    countdownType: 'redfabber_countdown_type',
-    countdownEndsAt: 'redfabber_countdown_ends_at'
+    active: 'mrjohndowe_session_active',
+    startedAt: 'mrjohndowe_session_started_at',
+    endsAt: 'mrjohndowe_session_ends_at',
+    durationMinutes: 'mrjohndowe_session_duration_minutes',
+    minMinutes: 'mrjohndowe_session_min_minutes',
+    maxMinutes: 'mrjohndowe_session_max_minutes',
+    countdownUrl: 'mrjohndowe_countdown_url',
+    countdownDurationSeconds: 'mrjohndowe_countdown_duration_seconds',
+    countdownPlayed: 'mrjohndowe_countdown_played',
+    postRunSeconds: 'mrjohndowe_post_run_seconds',
+    closeTabAfterSession: 'mrjohndowe_close_tab_after_session',
+    endingHandled: 'mrjohndowe_ending_handled',
+    fakeCountdowns: 'mrjohndowe_fake_countdowns',
+    surpriseMode: 'mrjohndowe_surprise_mode',
+    hideTimer: 'mrjohndowe_hide_timer',
+    autoScrollEnabled: 'mrjohndowe_auto_scroll_enabled',
+    spokenCountdownEnabled: 'mrjohndowe_spoken_countdown_enabled',
+    countdownActive: 'mrjohndowe_countdown_active',
+    countdownType: 'mrjohndowe_countdown_type',
+    countdownEndsAt: 'mrjohndowe_countdown_ends_at'
   };
 
   const DEFAULTS = {
@@ -108,7 +108,7 @@
       const storageKey = STORAGE_KEYS[key];
 
       if (!storageKey) {
-        console.warn('[RedFabber] Unknown storage key:', key, value);
+        console.warn('[MrJohnDowe] Unknown storage key:', key, value);
         return;
       }
 
@@ -198,7 +198,7 @@
       debug('Fake countdown audio ended early; XToys fake state remains until planned fake interruption.');
     });
     audio.addEventListener('error', () => {
-      console.warn('[RedFabber] Fake countdown audio error; XToys fake state remains until planned fake interruption.');
+      console.warn('[MrJohnDowe] Fake countdown audio error; XToys fake state remains until planned fake interruption.');
     });
 
     audio.play().then(() => {
@@ -210,7 +210,7 @@
         debug('Fake countdown interrupted 2 seconds before end');
       }, fakeClearDelayMs);
     }).catch(error => {
-      console.warn('[RedFabber] Fake countdown failed; XToys fake state remains until planned fake interruption:', error);
+      console.warn('[MrJohnDowe] Fake countdown failed; XToys fake state remains until planned fake interruption:', error);
     });
   }
 
@@ -257,7 +257,7 @@
     const url = localStorage.getItem(STORAGE_KEYS.countdownUrl);
 
     if (!url) {
-      console.warn('[RedFabber] Countdown URL missing in localStorage.');
+      console.warn('[MrJohnDowe] Countdown URL missing in localStorage.');
       return;
     }
 
@@ -303,13 +303,13 @@
       debug('Countdown audio ended; XToys countdown state remains until planned timer ends.');
     });
     audio.addEventListener('error', () => {
-      console.warn('[RedFabber] Countdown audio error; XToys countdown state remains until planned timer ends:', audio.error, url);
+      console.warn('[MrJohnDowe] Countdown audio error; XToys countdown state remains until planned timer ends:', audio.error, url);
     });
 
     audio.play().then(() => {
       debug('Countdown audio play() resolved');
     }).catch(error => {
-      console.warn('[RedFabber] Countdown audio play() rejected; XToys countdown state remains until planned timer ends:', error);
+      console.warn('[MrJohnDowe] Countdown audio play() rejected; XToys countdown state remains until planned timer ends:', error);
       localStorage.setItem(STORAGE_KEYS.countdownPlayed, 'false');
     });
   }
@@ -400,10 +400,10 @@
   }
 
   function createXtoysWebpageMonitor() {
-    if (document.getElementById('xtoys-redfabber-monitor')) return;
+    if (document.getElementById('xtoys-mrjohndowe-monitor')) return;
 
     const monitor = document.createElement('div');
-    monitor.id = 'xtoys-redfabber-monitor';
+    monitor.id = 'xtoys-mrjohndowe-monitor';
     monitor.setAttribute('aria-hidden', 'false');
     monitor.style.cssText = [
       'position:fixed',
@@ -426,7 +426,7 @@
       monitor.style.display = 'none';
     }
 
-    window.redfabberXtoysMonitor = {
+    window.mrjohndoweXtoysMonitor = {
       getState: getXtoysMonitorState
     };
 
@@ -451,10 +451,10 @@
       monitor.setAttribute('data-rf-countdown-active', String(state.countdownActive ? 1 : 0));
       monitor.setAttribute('data-rf-countdown-type', state.countdownType);
 
-      window.redfabberXtoysMonitorLine = monitorLine;
+      window.mrjohndoweXtoysMonitorLine = monitorLine;
 
-      if (!window.redfabberOriginalTitle) {
-        window.redfabberOriginalTitle = document.title || '';
+      if (!window.mrjohndoweOriginalTitle) {
+        window.mrjohndoweOriginalTitle = document.title || '';
       }
       document.title = monitorLine;
 
@@ -488,24 +488,24 @@
       monitor.style.display = debugVisible ? '' : 'none';
       plain.style.display = debugVisible ? '' : 'none';
 
-      window.dispatchEvent(new CustomEvent('xtoys:redfabber-monitor', {
+      window.dispatchEvent(new CustomEvent('xtoys:mrjohndowe-monitor', {
         detail: state
       }));
     }, 250);
   }
 
   function createPanel() {
-    if (document.getElementById('redfabber-session-panel')) return;
+    if (document.getElementById('mrjohndowe-session-panel')) return;
     if (isSessionActive()) return;
 
     const savedMin = getNumber(STORAGE_KEYS.minMinutes, DEFAULTS.minMinutes);
     const savedMax = getNumber(STORAGE_KEYS.maxMinutes, DEFAULTS.maxMinutes);
 
     const panel = document.createElement('div');
-    panel.id = 'redfabber-session-panel';
+    panel.id = 'mrjohndowe-session-panel';
     panel.innerHTML = `
       <div class="rf-head">
-        <strong>RedFabber</strong>
+        <strong>MrJohnDowe</strong>
         <span>Session helper</span>
       </div>
 
@@ -522,7 +522,7 @@
 
       <label style="display:grid;gap:6px;margin-bottom:12px;color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">
           Scroll interval
-          <input id="rf-scroll" type="number" min="5" step="1" value="${getNumber('redfabber_scroll_seconds', DEFAULTS.scrollSeconds)}">
+          <input id="rf-scroll" type="number" min="5" step="1" value="${getNumber('mrjohndowe_scroll_seconds', DEFAULTS.scrollSeconds)}">
         </label>
 
         <label style="display:grid;gap:6px;margin-bottom:12px;color:#aaa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">
@@ -557,9 +557,9 @@
     `;
 
     const style = document.createElement('style');
-    style.id = 'redfabber-session-style';
+    style.id = 'mrjohndowe-session-style';
     style.textContent = `
-      #redfabber-session-panel {
+      #mrjohndowe-session-panel {
         position: fixed;
         right: 18px;
         bottom: 18px;
@@ -575,7 +575,7 @@
         backdrop-filter: blur(12px);
       }
 
-      #redfabber-session-panel .rf-head {
+      #mrjohndowe-session-panel .rf-head {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
@@ -583,24 +583,24 @@
         margin-bottom: 12px;
       }
 
-      #redfabber-session-panel .rf-head strong {
+      #mrjohndowe-session-panel .rf-head strong {
         font-size: 15px;
         letter-spacing: -.02em;
       }
 
-      #redfabber-session-panel .rf-head span {
+      #mrjohndowe-session-panel .rf-head span {
         color: #aaa;
         font-size: 11px;
       }
 
-      #redfabber-session-panel .rf-row {
+      #mrjohndowe-session-panel .rf-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         margin-bottom: 12px;
       }
 
-      #redfabber-session-panel label {
+      #mrjohndowe-session-panel label {
         display: grid;
         gap: 6px;
         color: #aaa;
@@ -610,7 +610,7 @@
         letter-spacing: .06em;
       }
 
-      #redfabber-session-panel input {
+      #mrjohndowe-session-panel input {
         width: 100%;
         height: 36px;
         padding: 0 10px;
@@ -623,12 +623,12 @@
         outline: none;
       }
 
-      #redfabber-session-panel input:focus {
+      #mrjohndowe-session-panel input:focus {
         border-color: ${BRAND};
         box-shadow: 0 0 0 3px rgba(207,62,68,.18);
       }
 
-      #redfabber-session-panel button {
+      #mrjohndowe-session-panel button {
         width: 100%;
         height: 40px;
         border: 0;
@@ -641,11 +641,11 @@
         font-weight: 800;
       }
 
-      #redfabber-session-panel button:hover {
+      #mrjohndowe-session-panel button:hover {
         filter: brightness(1.06);
       }
 
-      #redfabber-session-toast {
+      #mrjohndowe-session-toast {
         position: fixed;
         right: 18px;
         bottom: 18px;
@@ -662,7 +662,7 @@
         box-shadow: 0 18px 44px rgba(0,0,0,.38);
       }
 
-      #redfabber-session-toast button {
+      #mrjohndowe-session-toast button {
         border: 0;
         border-radius: 999px;
         background: ${BRAND};
@@ -674,7 +674,7 @@
         padding: 7px 10px;
       }
 
-      #redfabber-session-toast strong {
+      #mrjohndowe-session-toast strong {
         color: ${BRAND};
       }
     `;
@@ -715,7 +715,7 @@
 
       localStorage.setItem(STORAGE_KEYS.minMinutes, String(min));
       localStorage.setItem(STORAGE_KEYS.maxMinutes, String(max));
-      localStorage.setItem('redfabber_scroll_seconds', String(scrollSeconds));
+      localStorage.setItem('mrjohndowe_scroll_seconds', String(scrollSeconds));
       localStorage.setItem(STORAGE_KEYS.postRunSeconds, String(postRunSeconds));
       localStorage.setItem(STORAGE_KEYS.closeTabAfterSession, String(closeTabAfterSession));
       localStorage.setItem(STORAGE_KEYS.fakeCountdowns, String(fakeCountdowns));
@@ -794,10 +794,10 @@
 
   function showRunningToast() {
     if (!isSessionActive()) return;
-    if (document.getElementById('redfabber-session-toast')) return;
+    if (document.getElementById('mrjohndowe-session-toast')) return;
 
     const toast = document.createElement('div');
-    toast.id = 'redfabber-session-toast';
+    toast.id = 'mrjohndowe-session-toast';
     const hideTimer = localStorage.getItem(STORAGE_KEYS.hideTimer) === 'true';
 
     toast.innerHTML = `
@@ -814,7 +814,7 @@
     });
 
     document.getElementById('rf-pause-scroll')?.addEventListener('click', () => {
-      localStorage.setItem('redfabber_scroll_pause_until', String(Date.now() + 10000));
+      localStorage.setItem('mrjohndowe_scroll_pause_until', String(Date.now() + 10000));
       const button = document.getElementById('rf-pause-scroll');
       if (button) button.textContent = 'Paused';
     });
@@ -840,7 +840,7 @@
   }
 
   function removeRunningToast() {
-    document.getElementById('redfabber-session-toast')?.remove();
+    document.getElementById('mrjohndowe-session-toast')?.remove();
   }
 
   function hardStopSession() {
@@ -849,15 +849,15 @@
     clearCountdownState(null);
     clearSessionState();
     removeRunningToast();
-    document.getElementById('redfabber-session-panel')?.remove();
+    document.getElementById('mrjohndowe-session-panel')?.remove();
     createPanel();
-    console.log('[RedFabber] Session stopped.');
+    console.log('[MrJohnDowe] Session stopped.');
   }
 
   window.fapstop = hardStopSession;
   debug('Console command registered: fapstop()');
 
-  const NAV_MESSAGE_MARKER = 'redfabber-xfree-nav-v2';
+  const NAV_MESSAGE_MARKER = 'mrjohndowe-xfree-nav-v2';
 
   function isXfreeHostname(hostname) {
     return hostname === 'xfree.com' || hostname.endsWith('.xfree.com');
@@ -1485,7 +1485,7 @@
       debug(`Waiting post-run seconds before final action: ${postRunSeconds}`);
 
       const postRunEndsAt = Date.now() + postRunSeconds * 1000;
-      const toastLabel = document.querySelector('#redfabber-session-toast span');
+      const toastLabel = document.querySelector('#mrjohndowe-session-toast span');
 
       if (toastLabel) {
         toastLabel.innerHTML = `Post-run · <strong id="rf-remaining">${formatPostRunTime(postRunEndsAt - Date.now())}</strong>`;
@@ -1557,7 +1557,7 @@
   }
 
   function getPauseUntil() {
-    return Number(localStorage.getItem('redfabber_scroll_pause_until')) || 0;
+    return Number(localStorage.getItem('mrjohndowe_scroll_pause_until')) || 0;
   }
 
   function isScrollPaused() {
@@ -1826,7 +1826,7 @@
       }
 
       const fallbackScrollSeconds =
-        Number(localStorage.getItem('redfabber_scroll_seconds')) ||
+        Number(localStorage.getItem('mrjohndowe_scroll_seconds')) ||
         DEFAULTS.scrollSeconds;
 
       const remainingMs = getRemainingMs();
