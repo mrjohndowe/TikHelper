@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         xxxfollow Session Helper
+// @name         xfree Session Helper
 // @version      0.1.0
-// @description  Sessionhelper for xxxfollow with xtoys integration
-// @match        https://xxxfollow.com/*
+// @description  Sessionhelper for xfree with xtoys integration
+// @match        https://xfree.com/*
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
